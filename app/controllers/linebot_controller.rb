@@ -26,9 +26,21 @@ class LinebotController < ApplicationController
       when Line::Bot::Event::Message
         case event.type
         when Line::Bot::Event::MessageType::Text
+          if event.message['text'].include?("何時？")
+            response = Time.now
+          else
+            response = event.message['text']
+          end
           message = {
             type: 'text',
-            text: event.message['text']
+            text: response
+          }
+          client.reply_message(event['replyToken'], message)
+        when Line::Bot::Event::MessageType::Location
+          
+          message = {
+            type: 'text',
+            text: event.message['address']
           }
           client.reply_message(event['replyToken'], message)
         end
