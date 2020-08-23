@@ -1,6 +1,6 @@
 class LinebotController < ApplicationController
   require 'line/bot'  # gem 'line-bot-api'
-
+  require 'open-uri'
   # callbackアクションのCSRFトークン認証を無効
   protect_from_forgery :except => [:callback]
 
@@ -37,10 +37,24 @@ class LinebotController < ApplicationController
           }
           client.reply_message(event['replyToken'], message)
         when Line::Bot::Event::MessageType::Location
-          
+          lat = event.message['latitude'].to_s
+          lon = event.message['longitude'].to_s
+          key_id = ENV["ACCESS_KEY"]
+          url = "https://api.gnavi.co.jp/RestSearchAPI/v3/?keyid=" + key_id + "&latitude=" + lat + "&longitude=" + lon + "&takeout=1&hit_per_page=3"
+          json = JSON.parse( open(url).read )            #ぐるなびAPIから取得したJSONを展開する
+          shops = json["rest"]
+          shop = shops.sample                   #ランダムで一つ選ぶ
+          name = shop["name"]
+          shop_url = shop["url_mobile"]
+          category = shop["category"]
+          image = shop["image_url"]["shop_image1"]
+          address = shop["address"]
+          pr = shop["pr"]["pr_long"]
+          price = shop["budget"]
+          responce = "[店名]" + name + "\n" + image + "\n" + pr + "\n" + shop_url
           message = {
             type: 'text',
-            text: event.message['address']
+            text: responce
           }
           client.reply_message(event['replyToken'], message)
         end
