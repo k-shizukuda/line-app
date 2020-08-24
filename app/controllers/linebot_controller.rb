@@ -26,16 +26,11 @@ class LinebotController < ApplicationController
       when Line::Bot::Event::Message
         case event.type
         when Line::Bot::Event::MessageType::Text
-          if event.message['text'].include?("何時？")
-            response = Time.now
-          else
-            response = event.message['text']
-          end
           message = {
             type: 'text',
-            text: response
+            text: "位置情報を送ってください、\nテイクアウトできるお店探しますよ"
           }
-          client.reply_message(event['replyToken'], message)
+          client.reply_message(event['replyToken'],message)
         when Line::Bot::Event::MessageType::Location
           lat = event.message['latitude'].to_s
           lon = event.message['longitude'].to_s
@@ -50,13 +45,161 @@ class LinebotController < ApplicationController
           image = shop["image_url"]["shop_image1"]
           address = shop["address"]
           pr = shop["pr"]["pr_long"]
+          pr_short = shop["pr"]["pr_short"]
           price = shop["budget"]
-          responce = "[店名]" + name + "\n" + image + "\n" + pr + "\n" + shop_url
-          message = {
-            type: 'text',
-            text: responce
-          }
-          client.reply_message(event['replyToken'], message)
+          open_time = shop["opentime"]
+          tel = shop["tel"]
+          client.reply_message(event['replyToken'], [{
+            type: "text",
+            text: "このお店はいかがでしょう？"
+          }, {
+            type: "flex",
+            altText: "flex message",
+            contents: {
+              type: "bubble",
+              hero: {
+                type: "image",
+                url: image,
+                size: "full",
+                aspectRatio: "20:13",
+                aspectMode: "cover",
+                action: {
+                  type: "uri",
+                  uri: shop_url
+                }
+              },
+              body: {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                  {
+                    type: "text",
+                    text: name,
+                    weight: "bold",
+                    size: "xl"
+                  },
+                  {
+                    type: "box",
+                    layout: "vertical",
+                    margin: "lg",
+                    spacing: "sm",
+                    contents: [
+                      {
+                        type: "box",
+                        layout: "baseline",
+                        spacing: "sm",
+                        contents: [
+                          {
+                            type: "text",
+                            text: category,
+                            wrap: true,
+                            size: "md",
+                            flex: 5
+                          }
+                        ]
+                      },
+                      {
+                        type: "box",
+                        layout: "baseline",
+                        spacing: "sm",
+                        contents: [
+                          {
+                            type: "text",
+                            text: "Place",
+                            color: "#aaaaaa",
+                            size: "sm",
+                            flex: 1
+                          },
+                          {
+                            type: "text",
+                            text: address,
+                            wrap: true,
+                            color: "#666666",
+                            size: "sm",
+                            flex: 5
+                          }
+                        ]
+                      },
+                      {
+                        type: "box",
+                        layout: "baseline",
+                        spacing: "sm",
+                        contents: [
+                          {
+                            type: "text",
+                            text: "Time",
+                            color: "#aaaaaa",
+                            size: "sm",
+                            flex: 1
+                          },
+                          {
+                            type: "text",
+                            text: open_time,
+                            wrap: true,
+                            color: "#666666",
+                            size: "sm",
+                            flex: 5
+                          }
+                        ]
+                      },
+                      {
+                        type: "box",
+                        layout: "vertical",
+                        contents: [
+                          type: "text",
+                          text: pr_short,
+                          size: "sm",
+                          wrap: true
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              footer: {
+                type: "box",
+                layout: "vertical",
+                spacing: "sm",
+                contents: [
+                  {
+                    type: "button",
+                    style: "link",
+                    height: "sm",
+                    action: {
+                      type: "uri",
+                      label: "WEBSITE",
+                      uri: shop_url
+                    }
+                  },
+                  {
+                    type: "spacer",
+                    size: "sm"
+                  }
+                ],
+                flex: 0
+              }
+            }
+            # type: 'flex',
+            # altText: 'this is a flex message',
+            # contents: {
+            #   type: 'bubble',
+            #   body: {
+            #     type: "box",
+            #     layout: "vertical",
+            #     contents: [
+            #       {
+            #         type: "text",
+            #         text: name
+            #       },
+            #       {
+            #         type: "text",
+            #         text: pr
+            #       }
+            #     ]
+            #   }
+            # }
+            }]
+          )
         end
       end
     }
