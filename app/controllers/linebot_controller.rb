@@ -40,180 +40,175 @@ class LinebotController < ApplicationController
             begin open(url).read                        #検索に該当する店舗がない場合の例外処理
             rescue OpenURI::HTTPError => e
             end
-            json = JSON.parse( open(url).read )            #ぐるなびAPIから取得したJSONを展開する
-            shops = json["rest"]
-            shop = shops.sample                   #ランダムで一つ選ぶ
-            name = shop["name"]
-            shop_url = shop["url_mobile"]
-            category = shop["category"]
-            image = shop["image_url"]["shop_image1"]
-            address = shop["address"]
-            pr = shop["pr"]["pr_long"]
-            pr_short = shop["pr"]["pr_short"]
-            price = shop["budget"]
-            open_time = shop["opentime"]
-            tel = shop["tel"]
-            client.reply_message(event['replyToken'], [{
-              type: "text",
-              text: "このお店はいかがでしょう？"
-            }, {
-              type: "flex",
-              altText: "flex message",
-              contents: {
-                type: "bubble",
-                hero: {
-                  type: "image",
-                  url: image,
-                  size: "full",
-                  aspectRatio: "20:13",
-                  aspectMode: "cover",
-                  action: {
-                    type: "uri",
-                    uri: shop_url
-                  }
-                },
-                body: {
-                  type: "box",
-                  layout: "vertical",
-                  contents: [
-                    {
-                      type: "text",
-                      text: name,
-                      weight: "bold",
-                      size: "xl"
-                    },
-                    {
-                      type: "box",
-                      layout: "vertical",
-                      margin: "lg",
-                      spacing: "sm",
-                      contents: [
-                        {
-                          type: "box",
-                          layout: "baseline",
-                          spacing: "sm",
-                          contents: [
-                            {
-                              type: "text",
-                              text: category,
-                              wrap: true,
-                              size: "md",
-                              flex: 5
-                            }
-                          ]
-                        },
-                        {
-                          type: "box",
-                          layout: "baseline",
-                          spacing: "sm",
-                          contents: [
-                            {
-                              type: "text",
-                              text: "Place",
-                              color: "#aaaaaa",
-                              size: "sm",
-                              flex: 1
-                            },
-                            {
-                              type: "text",
-                              text: address,
-                              wrap: true,
-                              color: "#666666",
-                              size: "sm",
-                              flex: 5
-                            }
-                          ]
-                        },
-                        {
-                          type: "box",
-                          layout: "baseline",
-                          spacing: "sm",
-                          contents: [
-                            {
-                              type: "text",
-                              text: "Time",
-                              color: "#aaaaaa",
-                              size: "sm",
-                              flex: 1
-                            },
-                            {
-                              type: "text",
-                              text: open_time,
-                              wrap: true,
-                              color: "#666666",
-                              size: "sm",
-                              flex: 5
-                            }
-                          ]
-                        },
-                        {
-                          type: "box",
-                          layout: "vertical",
-                          contents: [
-                            type: "text",
-                            text: pr_short,
-                            size: "sm",
-                            wrap: true
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                },
-                footer: {
-                  type: "box",
-                  layout: "vertical",
-                  spacing: "sm",
-                  contents: [
-                    {
-                      type: "button",
-                      style: "link",
-                      height: "sm",
-                      action: {
-                        type: "uri",
-                        label: "WEBSITE",
-                        uri: shop_url
-                      }
-                    },
-                    {
-                      type: "spacer",
-                      size: "sm"
-                    }
-                  ],
-                  flex: 0
-                }
-              }
-              # type: 'flex',
-              # altText: 'this is a flex message',
-              # contents: {
-              #   type: 'bubble',
-              #   body: {
-              #     type: "box",
-              #     layout: "vertical",
-              #     contents: [
-              #       {
-              #         type: "text",
-              #         text: name
-              #       },
-              #       {
-              #         type: "text",
-              #         text: pr
-              #       }
-              #     ]
-              #   }
-              # }
-              }]
-            )
+            message = "このお店はいかがでしょう？"
+            res_message(event,url,message)
           else
-            client.reply_message(event['replyToken'], {
-              type: "text",
-              text: "ないよー"
-            })
+            url += "&range=3"
+            if
+              begin open(url).read                        #検索に該当する店舗がない場合の例外処理
+              rescue OpenURI::HTTPError => e
+              end
+              message = "少し遠いけどいかがでしょう？"
+              res_message(event,url,message)
+            else
+              message = {
+                  type: "text",
+                  text: "テイクアウトのできるお店を見つけることができませんでした😥"
+              }
+              client.reply_message(event['replyToken'],message)
+            end
           end
         end
       end
     }
 
     head :ok
+  end
+  def res_message(event,url, message)
+    json = JSON.parse( open(url).read )            #ぐるなびAPIから取得したJSONを展開する
+    shops = json["rest"]
+    shop = shops.sample                   #ランダムで一つ選ぶ
+    name = shop["name"]
+    shop_url = shop["url_mobile"]
+    category = shop["category"]
+    image = shop["image_url"]["shop_image1"]
+    address = shop["address"]
+    pr = shop["pr"]["pr_long"]
+    pr_short = shop["pr"]["pr_short"]
+    price = shop["budget"]
+    open_time = shop["opentime"]
+    tel = shop["tel"]
+    client.reply_message(event['replyToken'], [{
+      type: "text",
+      text: message
+    }, {
+      type: "flex",
+      altText: "flex message",
+      contents: {
+        type: "bubble",
+        hero: {
+          type: "image",
+          url: image,
+          size: "full",
+          aspectRatio: "20:13",
+          aspectMode: "cover",
+          action: {
+            type: "uri",
+            uri: shop_url
+          }
+        },
+        body: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            {
+              type: "text",
+              text: name,
+              weight: "bold",
+              size: "xl"
+            },
+            {
+              type: "box",
+              layout: "vertical",
+              margin: "lg",
+              spacing: "sm",
+              contents: [
+                {
+                  type: "box",
+                  layout: "baseline",
+                  spacing: "sm",
+                  contents: [
+                    {
+                      type: "text",
+                      text: category,
+                      wrap: true,
+                      size: "md",
+                      flex: 5
+                    }
+                  ]
+                },
+                {
+                  type: "box",
+                  layout: "baseline",
+                  spacing: "sm",
+                  contents: [
+                    {
+                      type: "text",
+                      text: "Place",
+                      color: "#aaaaaa",
+                      size: "sm",
+                      flex: 1
+                    },
+                    {
+                      type: "text",
+                      text: address,
+                      wrap: true,
+                      color: "#666666",
+                      size: "sm",
+                      flex: 5
+                    }
+                  ]
+                },
+                {
+                  type: "box",
+                  layout: "baseline",
+                  spacing: "sm",
+                  contents: [
+                    {
+                      type: "text",
+                      text: "Time",
+                      color: "#aaaaaa",
+                      size: "sm",
+                      flex: 1
+                    },
+                    {
+                      type: "text",
+                      text: open_time,
+                      wrap: true,
+                      color: "#666666",
+                      size: "sm",
+                      flex: 5
+                    }
+                  ]
+                },
+                {
+                  type: "box",
+                  layout: "vertical",
+                  contents: [
+                    type: "text",
+                    text: pr_short,
+                    size: "sm",
+                    wrap: true
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        footer: {
+          type: "box",
+          layout: "vertical",
+          spacing: "sm",
+          contents: [
+            {
+              type: "button",
+              style: "link",
+              height: "sm",
+              action: {
+                type: "uri",
+                label: "WEBSITE",
+                uri: shop_url
+              }
+            },
+            {
+              type: "spacer",
+              size: "sm"
+            }
+          ],
+          flex: 0
+        }
+      }
+      }]
+    )
   end
 end
