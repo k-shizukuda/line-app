@@ -36,24 +36,18 @@ class LinebotController < ApplicationController
           lon = event.message['longitude'].to_s
           key_id = ENV["ACCESS_KEY"]
           url = "https://api.gnavi.co.jp/RestSearchAPI/v3/?keyid=" + key_id + "&latitude=" + lat + "&longitude=" + lon + "&takeout=1&hit_per_page=3"
-          if 
-            begin open(url).read                        #検索に該当する店舗がない場合の例外処理
-            rescue OpenURI::HTTPError => e
-            end
+          if res_present(url)
             message = "このお店はいかがでしょう？"
             res_message(event,url,message)
           else
             url += "&range=3"                           #検索の範囲を半径1000Mに変更
-            if
-              begin open(url).read
-              rescue OpenURI::HTTPError => e
-              end
+            if res_present(url)
               message = "少し遠いけどいかがでしょう？"
               res_message(event,url,message)
-            else
+            else                                        #検索範囲が1000Mでも見つからなければ諦める
               message = {
                   type: "text",
-                  text: "テイクアウトのできるお店を見つけることができませんでした😥"
+                  text: "テイクアウトのできるお店を見つけることができませんでした"
               }
               client.reply_message(event['replyToken'],message)
             end
@@ -64,6 +58,12 @@ class LinebotController < ApplicationController
 
     head :ok
   end
+  def res_present(url)           #ぐるなびAPIの検索結果が０だった場合nilを返す
+    begin open(url).read
+    rescue OpenURI::HTTPError => e
+    end
+  end
+
   def res_message(event,url, message)
     json = JSON.parse( open(url).read )            #ぐるなびAPIから取得したJSONを展開する
     shops = json["rest"]
