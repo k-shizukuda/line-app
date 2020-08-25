@@ -43,9 +43,9 @@ class LinebotController < ApplicationController
             message = "このお店はいかがでしょう？"
             res_message(event,url,message)
           else
-            url += "&range=3"
+            url += "&range=3"                           #検索の範囲を半径1000Mに変更
             if
-              begin open(url).read                        #検索に該当する店舗がない場合の例外処理
+              begin open(url).read
               rescue OpenURI::HTTPError => e
               end
               message = "少し遠いけどいかがでしょう？"
