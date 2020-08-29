@@ -35,7 +35,7 @@ class LinebotController < ApplicationController
           lat = event.message['latitude'].to_s
           lon = event.message['longitude'].to_s
           key_id = ENV["ACCESS_KEY"]
-          url = "https://api.gnavi.co.jp/RestSearchAPI/v3/?keyid=" + key_id + "&latitude=" + lat + "&longitude=" + lon + "&takeout=1&hit_per_page=3"
+          url = "https://api.gnavi.co.jp/RestSearchAPI/v3/?keyid=" + key_id + "&latitude=" + lat + "&longitude=" + lon + "&takeout=1&hit_per_page=10"
           if res_present(url)
             message = "このお店はいかがでしょう？"
             res_message(event,url,message)
@@ -67,7 +67,28 @@ class LinebotController < ApplicationController
   def res_message(event,url, message)
     json = JSON.parse( open(url).read )            #ぐるなびAPIから取得したJSONを展開する
     shops = json["rest"]
-    shop = shops.sample                   #ランダムで一つ選ぶ
+    if shops.length > 5
+      shops = shops.sample(5)                   #ランダムで一つ選ぶ
+    end
+    contents = []
+    shops.each do |shop|
+      contents << make_content(shop)
+    end
+    client.reply_message(event['replyToken'], [{
+      type: "text",
+      text: message
+    }, {
+      type: "flex",
+      altText: "flex message",
+      contents: {
+        type: "carousel",
+        contents: contents
+      }
+      }]
+    )
+  end
+
+  def make_content(shop)
     name = shop["name"]
     shop_url = shop["url_mobile"]
     category = shop["category"]
@@ -78,137 +99,130 @@ class LinebotController < ApplicationController
     price = shop["budget"]
     open_time = shop["opentime"]
     tel = shop["tel"]
-    client.reply_message(event['replyToken'], [{
-      type: "text",
-      text: message
-    }, {
-      type: "flex",
-      altText: "flex message",
-      contents: {
-        type: "bubble",
-        hero: {
-          type: "image",
-          url: image,
-          size: "full",
-          aspectRatio: "20:13",
-          aspectMode: "cover",
-          action: {
-            type: "uri",
-            uri: shop_url
-          }
-        },
-        body: {
-          type: "box",
-          layout: "vertical",
-          contents: [
-            {
-              type: "text",
-              text: name,
-              weight: "bold",
-              size: "xl"
-            },
-            {
-              type: "box",
-              layout: "vertical",
-              margin: "lg",
-              spacing: "sm",
-              contents: [
-                {
-                  type: "box",
-                  layout: "baseline",
-                  spacing: "sm",
-                  contents: [
-                    {
-                      type: "text",
-                      text: category,
-                      wrap: true,
-                      size: "md",
-                      flex: 5
-                    }
-                  ]
-                },
-                {
-                  type: "box",
-                  layout: "baseline",
-                  spacing: "sm",
-                  contents: [
-                    {
-                      type: "text",
-                      text: "Place",
-                      color: "#aaaaaa",
-                      size: "sm",
-                      flex: 1
-                    },
-                    {
-                      type: "text",
-                      text: address,
-                      wrap: true,
-                      color: "#666666",
-                      size: "sm",
-                      flex: 5
-                    }
-                  ]
-                },
-                {
-                  type: "box",
-                  layout: "baseline",
-                  spacing: "sm",
-                  contents: [
-                    {
-                      type: "text",
-                      text: "Time",
-                      color: "#aaaaaa",
-                      size: "sm",
-                      flex: 1
-                    },
-                    {
-                      type: "text",
-                      text: open_time,
-                      wrap: true,
-                      color: "#666666",
-                      size: "sm",
-                      flex: 5
-                    }
-                  ]
-                },
-                {
-                  type: "box",
-                  layout: "vertical",
-                  contents: [
-                    type: "text",
-                    text: pr_short,
-                    size: "sm",
-                    wrap: true
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        footer: {
-          type: "box",
-          layout: "vertical",
-          spacing: "sm",
-          contents: [
-            {
-              type: "button",
-              style: "link",
-              height: "sm",
-              action: {
-                type: "uri",
-                label: "WEBSITE",
-                uri: shop_url
-              }
-            },
-            {
-              type: "spacer",
-              size: "sm"
-            }
-          ],
-          flex: 0
+    content = {
+      type: "bubble",
+      hero: {
+        type: "image",
+        url: image,
+        size: "full",
+        aspectRatio: "20:13",
+        aspectMode: "cover",
+        action: {
+          type: "uri",
+          uri: shop_url
         }
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: name,
+            weight: "bold",
+            size: "xl"
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            margin: "lg",
+            spacing: "sm",
+            contents: [
+              {
+                type: "box",
+                layout: "baseline",
+                spacing: "sm",
+                contents: [
+                  {
+                    type: "text",
+                    text: category,
+                    wrap: true,
+                    size: "md",
+                    flex: 5
+                  }
+                ]
+              },
+              {
+                type: "box",
+                layout: "baseline",
+                spacing: "sm",
+                contents: [
+                  {
+                    type: "text",
+                    text: "Place",
+                    color: "#aaaaaa",
+                    size: "sm",
+                    flex: 1
+                  },
+                  {
+                    type: "text",
+                    text: address,
+                    wrap: true,
+                    color: "#666666",
+                    size: "sm",
+                    flex: 5
+                  }
+                ]
+              },
+              {
+                type: "box",
+                layout: "baseline",
+                spacing: "sm",
+                contents: [
+                  {
+                    type: "text",
+                    text: "Time",
+                    color: "#aaaaaa",
+                    size: "sm",
+                    flex: 1
+                  },
+                  {
+                    type: "text",
+                    text: open_time,
+                    wrap: true,
+                    color: "#666666",
+                    size: "sm",
+                    flex: 5
+                  }
+                ]
+              },
+              {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                  type: "text",
+                  text: pr_short,
+                  size: "sm",
+                  wrap: true
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: [
+          {
+            type: "button",
+            style: "link",
+            height: "sm",
+            action: {
+              type: "uri",
+              label: "WEBSITE",
+              uri: shop_url
+            }
+          },
+          {
+            type: "spacer",
+            size: "sm"
+          }
+        ],
+        spacing: "sm",
+        paddingAll: "13px"
       }
-      }]
-    )
+    }
   end
 end
