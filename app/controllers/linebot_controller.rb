@@ -34,17 +34,19 @@ class LinebotController < ApplicationController
         when Line::Bot::Event::MessageType::Location
           lat = event.message['latitude'].to_s
           lon = event.message['longitude'].to_s
-          key_id = ENV["ACCESS_KEY"]
+          key_id = ENV["ACCESS_KEY"]             #ぐるなびのアクセスキー
           url = "https://api.gnavi.co.jp/RestSearchAPI/v3/?keyid=" + key_id + "&latitude=" + lat + "&longitude=" + lon + "&takeout=1&hit_per_page=10"
-          if res_present(url)
+          begin
             message = "このお店はいかがでしょう？"
-            res_message(event,url,message)
-          else
-            url += "&range=3"                           #検索の範囲を半径1000Mに変更
-            if res_present(url)
+            data = open(url).read               #ぐるなびからデータを取得
+            res_message(event,data,message)
+          rescue                                #飲食店を見つけられなかった場合の処理
+            url += "&range=3"                   #検索の範囲を半径1000Mに変更
+            begin
               message = "少し遠いけどいかがでしょう？"
-              res_message(event,url,message)
-            else                                        #検索範囲が1000Mでも見つからなければ諦める
+              data = open(url).read
+              res_message(event,data,message)
+            rescue                              #検索範囲を広げても見つけられなかった場合の処理
               message = {
                   type: "text",
                   text: "テイクアウトのできるお店を見つけることができませんでした"
@@ -58,22 +60,18 @@ class LinebotController < ApplicationController
 
     head :ok
   end
-  def res_present(url)           #ぐるなびAPIの検索結果が０だった場合nilを返す
-    begin open(url).read
-    rescue OpenURI::HTTPError => e
-    end
-  end
-
-  def res_message(event,url, message)
-    json = JSON.parse( open(url).read )            #ぐるなびAPIから取得したJSONを展開する
+  
+  def res_message(event,data, message)
+    json = JSON.parse(data)            #ぐるなびAPIから取得したJSONを展開する
     shops = json["rest"]
-    if shops.length > 5
-      shops = shops.sample(5)                   #ランダムで一つ選ぶ
+    if shops.length > 5                         #検索結果が５件より多かった場合は、その中から５件選ぶ
+      shops = shops.sample(5)                   #ランダムで選ぶ
     end
     contents = []
     shops.each do |shop|
-      contents << make_content(shop)
+      contents << make_content(shop)             #取得した飲食店の情報をbubbleタイプで加える
     end
+    
     client.reply_message(event['replyToken'], [{
       type: "text",
       text: message
@@ -88,7 +86,7 @@ class LinebotController < ApplicationController
     )
   end
 
-  def make_content(shop)
+  def make_content(shop)          #飲食店の情報をbubbleタイプで作成する
     name = shop["name"]
     shop_url = shop["url_mobile"]
     category = shop["category"]
@@ -220,7 +218,7 @@ class LinebotController < ApplicationController
             size: "sm"
           }
         ],
-        spacing: "sm",
+        # spacing: "sm",
         paddingAll: "13px"
       }
     }
